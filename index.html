@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- 关键：设置手机屏幕自适应 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>手机端弹窗效果</title>
+    <!-- 引入 Brython 框架（让 Python 在浏览器运行） -->
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.1/brython.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.1/brython_stdlib.js"></script>
+    <style>
+        /* 弹窗样式：适配手机触摸和显示 */
+        .popup {
+            position: absolute;
+            padding: 18px;  /* 加大内边距，方便触摸 */
+            border-radius: 12px;  /* 圆角更美观 */
+            /* 字体：适配手机系统默认中文字体 */
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", sans-serif;
+            font-size: 18px;  /* 字号放大，适合手机阅读 */
+            font-weight: bold;
+            color: white;  /* 白色文字搭配彩色背景 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);  /* 阴影增强立体感 */
+            z-index: 1000;  /* 确保弹窗在最上层 */
+            transition: all 0.3s;  /* 弹窗出现/消失动画 */
+        }
+        /* 点击弹窗可手动关闭（增加交互） */
+        .popup:active {
+            transform: scale(0.95);  /* 点击时有缩小反馈 */
+        }
+        body {
+            margin: 0;
+            height: 100vh;  /* 占满手机屏幕 */
+            overflow: hidden;  /* 禁止滚动，避免弹窗错位 */
+            background-color: #f5f5f5;  /* 浅灰背景，区分弹窗 */
+        }
+        /* 初始提示文字 */
+        .info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body onload="brython()">
+    <!-- 初始提示 -->
+    <div class="info">点击屏幕开始...</div>
+
+    <script type="text/python">
+        # 导入浏览器相关模块
+        from browser import document, window, timer, alert
+        import random
+        import time
+
+        # 弹窗内容（可自定义）
+        messages = [
+            "你好呀！", "今天也要开心~", "加油哦！",
+            "欢迎使用！", "美好的一天开始啦！",
+            "记得休息哦~", "你很棒！"
+        ]
+
+        # 全局变量
+        is_running = False  # 是否正在运行
+        run_duration = 15  # 总运行时间（秒）
+        popup_interval = 0.005  # 弹窗间隔（秒）
+        start_time = 0
+
+        def create_popup():
+            """创建一个随机弹窗"""
+            global start_time
+            # 如果超时或已停止，退出
+            if not is_running or (time.time() - start_time) > run_duration:
+                return
+
+            # 随机背景色（避开过浅颜色，确保文字可见）
+            r = random.randint(50, 200)
+            g = random.randint(50, 200)
+            b = random.randint(50, 200)
+            color = f'rgb({r}, {g}, {b})'
+
+            # 随机选择文字
+            msg = random.choice(messages)
+
+            # 创建弹窗元素
+            popup = document.createElement('div')
+            popup.className = 'popup'
+            popup.style.backgroundColor = color
+            popup.textContent = msg
+
+            # 计算随机位置（确保弹窗完全在屏幕内）
+            screen_width = window.innerWidth
+            screen_height = window.innerHeight
+            popup_width = 160  # 弹窗宽度
+            popup_height = 70  # 弹窗高度
+            x = random.randint(0, screen_width - popup_width)
+            y = random.randint(0, screen_height - popup_height)
+            popup.style.left = f'{x}px'
+            popup.style.top = f'{y}px'
+
+            # 点击弹窗手动关闭
+            def close_popup(evt):
+                if popup in document.body.children:
+                    document.body.removeChild(popup)
+            popup.bind('click', close_popup)
+
+            # 添加到页面
+            document.body.appendChild(popup)
+
+            # 3秒后自动关闭（如果没被手动点击）
+            timer.set_timeout(lambda: close_popup(None) if popup in document.body.children else None, 3000)
+
+            # 定时创建下一个弹窗
+            timer.set_timeout(create_popup, int(popup_interval * 1000))
+
+        def start_popups(evt):
+            """点击屏幕开始弹窗"""
+            global is_running, start_time
+            if not is_running:
+                is_running = True
+                start_time = time.time()
+                # 隐藏初始提示
+                document.querySelector('.info').style.display = 'none'
+                # 开始创建弹窗
+                create_popup()
+
+        # 绑定屏幕点击事件：点击开始
+        document.body.bind('click', start_popups)
+    </script>
+</body>
+</html>
